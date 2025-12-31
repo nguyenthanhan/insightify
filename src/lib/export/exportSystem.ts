@@ -21,13 +21,13 @@ export class ExportSystem {
   // Export data to CSV
   exportToCSV(
     data: Record<string, unknown>[],
-    options?: Partial<ExportOptions>
+    options?: Partial<ExportOptions>,
   ): string {
     if (data.length === 0) return "";
 
     const headers = Object.keys(data[0]);
     const rows = data.map((row) =>
-      headers.map((header) => this.escapeCSVValue(row[header])).join(",")
+      headers.map((header) => this.escapeCSVValue(row[header])).join(","),
     );
 
     return [headers.join(","), ...rows].join("\n");
@@ -45,7 +45,7 @@ export class ExportSystem {
           data,
         },
         null,
-        2
+        2,
       );
     }
 
@@ -79,13 +79,15 @@ export class ExportSystem {
     const filename = options.filename || `export-${Date.now()}`;
 
     switch (options.format) {
-      case "csv":
+      case "csv": {
         const csvContent = this.exportToCSV(data as Record<string, unknown>[]);
         return new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+      }
 
-      case "json":
+      case "json": {
         const jsonContent = this.exportToJSON(data, options);
         return new Blob([jsonContent], { type: "application/json" });
+      }
 
       default:
         throw new Error(`Unsupported export format: ${options.format}`);
@@ -95,7 +97,7 @@ export class ExportSystem {
   // Export chart as image
   async exportChart(
     chartElement: HTMLElement,
-    options: ExportOptions
+    options: ExportOptions,
   ): Promise<Blob> {
     // For PNG/SVG export, we'd use html2canvas or similar
     // This is a simplified implementation
@@ -109,7 +111,7 @@ export class ExportSystem {
 
     // For PNG, we'd need html2canvas
     throw new Error(
-      `Chart export to ${options.format} requires additional libraries`
+      `Chart export to ${options.format} requires additional libraries`,
     );
   }
 

@@ -14,7 +14,7 @@ describe("Memoization Utilities", () => {
   describe("memoize", () => {
     it("should cache function results", () => {
       const fn = vi.fn((x: number) => x * 2);
-      const memoized = memoize(fn);
+      const memoized = memoize(fn as (...args: unknown[]) => unknown);
 
       expect(memoized(5)).toBe(10);
       expect(memoized(5)).toBe(10);
@@ -23,7 +23,7 @@ describe("Memoization Utilities", () => {
 
     it("should call function for different arguments", () => {
       const fn = vi.fn((x: number) => x * 2);
-      const memoized = memoize(fn);
+      const memoized = memoize(fn as (...args: unknown[]) => unknown);
 
       expect(memoized(5)).toBe(10);
       expect(memoized(10)).toBe(20);
@@ -32,7 +32,9 @@ describe("Memoization Utilities", () => {
 
     it("should respect maxSize option", () => {
       const fn = vi.fn((x: number) => x * 2);
-      const memoized = memoize(fn, { maxSize: 2 });
+      const memoized = memoize(fn as (...args: unknown[]) => unknown, {
+        maxSize: 2,
+      });
 
       memoized(1);
       memoized(2);
@@ -82,7 +84,9 @@ describe("Memoization Utilities", () => {
 
   describe("createMemoizedFilter", () => {
     it("should cache filter results", () => {
-      const filterFn = vi.fn((item: number, min: number) => item >= min);
+      const filterFn = vi.fn(
+        (item: number, min: unknown) => item >= (min as number),
+      );
       const memoizedFilter = createMemoizedFilter(filterFn);
 
       const items = [1, 2, 3, 4, 5];
@@ -94,7 +98,7 @@ describe("Memoization Utilities", () => {
     });
 
     it("should recalculate for different criteria", () => {
-      const filterFn = (item: number, min: number) => item >= min;
+      const filterFn = (item: number, min: unknown) => item >= (min as number);
       const memoizedFilter = createMemoizedFilter(filterFn);
 
       const items = [1, 2, 3, 4, 5];
@@ -134,7 +138,7 @@ describe("Memoization Utilities", () => {
 
   describe("createMemoizedFilterSort", () => {
     it("should filter and sort in one pass", () => {
-      const filterFn = (item: number, min: number) => item >= min;
+      const filterFn = (item: number, min: unknown) => item >= (min as number);
       const compareFn = (a: number, b: number) => b - a; // Descending
       const memoized = createMemoizedFilterSort(filterFn, compareFn);
 
@@ -145,7 +149,7 @@ describe("Memoization Utilities", () => {
     });
 
     it("should cache combined results", () => {
-      const filterFn = (item: number, min: number) => item >= min;
+      const filterFn = (item: number, min: unknown) => item >= (min as number);
       const compareFn = (a: number, b: number) => a - b;
       const memoized = createMemoizedFilterSort(filterFn, compareFn);
 
@@ -174,18 +178,19 @@ describe("Memoization Utilities", () => {
           }),
           fc.integer({ min: -100, max: 100 }),
           (items, threshold) => {
-            const filterFn = (item: number, min: number) => item >= min;
+            const filterFn = (item: number, min: unknown) =>
+              item >= (min as number);
             const memoizedFilter = createMemoizedFilter(filterFn);
 
             const memoizedResult = memoizedFilter(items, threshold);
             const directResult = items.filter((item) =>
-              filterFn(item, threshold)
+              filterFn(item, threshold),
             );
 
             expect(memoizedResult).toEqual(directResult);
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -204,9 +209,9 @@ describe("Memoization Utilities", () => {
             const directResult = [...items].sort(compareFn);
 
             expect(memoizedResult).toEqual(directResult);
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -219,7 +224,8 @@ describe("Memoization Utilities", () => {
           }),
           fc.integer({ min: -100, max: 100 }),
           (items, threshold) => {
-            const filterFn = (item: number, min: number) => item >= min;
+            const filterFn = (item: number, min: unknown) =>
+              item >= (min as number);
             const compareFn = (a: number, b: number) => a - b;
             const memoized = createMemoizedFilterSort(filterFn, compareFn);
 
@@ -229,9 +235,9 @@ describe("Memoization Utilities", () => {
               .sort(compareFn);
 
             expect(memoizedResult).toEqual(directResult);
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });
@@ -268,7 +274,7 @@ describe("Memoization Utilities", () => {
 
     it("should return true for nested objects", () => {
       expect(deepEqual({ a: { b: { c: 1 } } }, { a: { b: { c: 1 } } })).toBe(
-        true
+        true,
       );
     });
 

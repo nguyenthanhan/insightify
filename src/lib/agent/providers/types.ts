@@ -180,12 +180,12 @@ export interface AnthropicError {
 // ============ Auth Strategy Implementations ============
 
 export class ApiKeyAuthStrategy implements AuthStrategy {
-  type: "api-key" = "api-key";
+  type = "api-key" as const;
 
   constructor(
     private apiKey: string,
     private headerName: string = "Authorization",
-    private prefix: string = "Bearer "
+    private prefix: string = "Bearer ",
   ) {}
 
   async getHeaders(): Promise<Record<string, string>> {
@@ -196,7 +196,7 @@ export class ApiKeyAuthStrategy implements AuthStrategy {
 }
 
 export class CustomHeadersAuthStrategy implements AuthStrategy {
-  type: "custom" = "custom";
+  type = "custom" as const;
 
   constructor(private headers: Record<string, string>) {}
 
@@ -207,13 +207,13 @@ export class CustomHeadersAuthStrategy implements AuthStrategy {
 
 // AWS SigV4 would require additional implementation with AWS SDK
 export class AWSSigV4AuthStrategy implements AuthStrategy {
-  type: "aws-sigv4" = "aws-sigv4";
+  type = "aws-sigv4" as const;
 
   constructor(
     private region: string,
     private service: string,
     private accessKeyId?: string,
-    private secretAccessKey?: string
+    private secretAccessKey?: string,
   ) {}
 
   async getHeaders(): Promise<Record<string, string>> {

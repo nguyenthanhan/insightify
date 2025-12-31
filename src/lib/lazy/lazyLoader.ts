@@ -92,7 +92,7 @@ export class LazyRegistry {
    */
   getWithSuspense(
     name: string,
-    fallback?: React.ReactNode
+    fallback?: React.ReactNode,
   ): React.FC<Record<string, unknown>> | null {
     const entry = this.registry.get(name);
     if (!entry) return null;
@@ -104,7 +104,7 @@ export class LazyRegistry {
       React.createElement(
         Suspense,
         { fallback: suspenseFallback },
-        React.createElement(LazyComponent, props)
+        React.createElement(LazyComponent, props),
       );
 
     WrappedComponent.displayName = `Lazy(${name})`;
@@ -131,7 +131,7 @@ export class LazyRegistry {
    */
   async preloadAll(): Promise<void> {
     const promises = Array.from(this.registry.keys()).map((name) =>
-      this.preload(name)
+      this.preload(name),
     );
     await Promise.all(promises);
   }
@@ -220,7 +220,7 @@ export function resetLazyRegistry(): void {
  */
 export function createLazyComponent<P extends Record<string, unknown>>(
   loader: () => Promise<{ default: ComponentType<P> }>,
-  fallback?: React.ReactNode
+  fallback?: React.ReactNode,
 ): React.FC<P> {
   const LazyComponent = lazy(loader) as React.LazyExoticComponent<
     ComponentType<P>
@@ -230,7 +230,7 @@ export function createLazyComponent<P extends Record<string, unknown>>(
     React.createElement(
       Suspense,
       { fallback: fallback || React.createElement("div", null, "Loading...") },
-      React.createElement(LazyComponent, props)
+      React.createElement(LazyComponent, props as any),
     );
 
   return WrappedComponent;

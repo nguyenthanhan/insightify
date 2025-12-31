@@ -16,14 +16,14 @@ import {
 } from "./types";
 
 export class OpenAIAdapter extends BaseProviderAdapter {
-  readonly name = "openai";
+  readonly name: string = "openai";
 
   constructor(config: ProviderConfig) {
     super(config);
   }
 
   async *sendRequest(
-    request: NormalizedRequest
+    request: NormalizedRequest,
   ): AsyncGenerator<ProviderChunk> {
     const openaiRequest = this.toOpenAIRequest(request);
     const headers = await this.getHeaders();
@@ -41,7 +41,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
           .json()
           .catch(() => ({ error: { message: response.statusText } }));
         throw new Error(
-          `OpenAI API error: ${error.error?.message || response.statusText}`
+          `OpenAI API error: ${error.error?.message || response.statusText}`,
         );
       }
 
@@ -52,7 +52,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         yield this.handleNonStreamingResponse(data);
       }
     } catch (error) {
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 
@@ -64,8 +64,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         this.createValidationError(
           "apiKey",
           "API key or auth strategy is required",
-          "REQUIRED"
-        )
+          "REQUIRED",
+        ),
       );
     }
 
@@ -86,8 +86,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
           this.createValidationError(
             "connection",
             "Failed to connect to OpenAI API",
-            "CONNECTION_FAILED"
-          )
+            "CONNECTION_FAILED",
+          ),
         );
       }
     } catch (error) {
@@ -95,8 +95,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         this.createValidationError(
           "connection",
           `Connection error: ${error}`,
-          "CONNECTION_ERROR"
-        )
+          "CONNECTION_ERROR",
+        ),
       );
     }
 
@@ -156,7 +156,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   private toOpenAIMessages(
-    messages: NormalizedRequest["messages"]
+    messages: NormalizedRequest["messages"],
   ): OpenAIMessage[] {
     return messages.map((msg) => {
       const openaiMsg: OpenAIMessage = {
@@ -196,7 +196,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   private async *handleStreamingResponse(
-    body: ReadableStream<Uint8Array>
+    body: ReadableStream<Uint8Array>,
   ): AsyncGenerator<ProviderChunk> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
@@ -250,7 +250,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   private parseToolCalls(
-    toolCalls?: OpenAIMessage["tool_calls"]
+    toolCalls?: OpenAIMessage["tool_calls"],
   ): ToolCall[] | undefined {
     if (!toolCalls || toolCalls.length === 0) return undefined;
 

@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from "uuid";
 import {
   ConversationContext,
   ContextMessage,
-  ContextMetadata,
   ContextOptions,
   DashboardType,
 } from "../types";
@@ -33,14 +32,14 @@ export class ContextManager {
 
   constructor(
     dashboardType: DashboardType = "sales",
-    options: Partial<ContextOptions> = {}
+    options: Partial<ContextOptions> = {},
   ) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.context = this.createInitialContext(dashboardType);
   }
 
   addMessage(
-    message: Omit<ContextMessage, "id" | "timestamp" | "tokenCount">
+    message: Omit<ContextMessage, "id" | "timestamp" | "tokenCount">,
   ): void {
     const tokenCount = estimateTokens(message.content);
     const fullMessage: ContextMessage = {
@@ -87,7 +86,7 @@ export class ContextManager {
   }
 
   async summarizeIfNeeded(
-    summarizer?: (messages: ContextMessage[]) => Promise<string>
+    summarizer?: (messages: ContextMessage[]) => Promise<string>,
   ): Promise<void> {
     if (!this.needsSummarization()) return;
 
@@ -120,7 +119,7 @@ export class ContextManager {
     this.context.messages = [summaryMessage, ...toKeep];
     this.context.tokenCount = this.context.messages.reduce(
       (sum, m) => sum + m.tokenCount,
-      0
+      0,
     );
     this.context.metadata.messageCount = this.context.messages.length;
   }
@@ -137,7 +136,7 @@ export class ContextManager {
 
   static fromSerialized(
     data: string,
-    options?: Partial<ContextOptions>
+    options?: Partial<ContextOptions>,
   ): ContextManager {
     const manager = new ContextManager("sales", options);
     manager.deserialize(data);
@@ -145,7 +144,7 @@ export class ContextManager {
   }
 
   private createInitialContext(
-    dashboardType: DashboardType
+    dashboardType: DashboardType,
   ): ConversationContext {
     return {
       id: uuidv4(),
@@ -170,7 +169,7 @@ export class ContextManager {
 
 export const createContextManager = (
   dashboardType: DashboardType = "sales",
-  options?: Partial<ContextOptions>
+  options?: Partial<ContextOptions>,
 ): ContextManager => {
   return new ContextManager(dashboardType, options);
 };

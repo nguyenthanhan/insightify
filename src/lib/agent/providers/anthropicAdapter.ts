@@ -17,14 +17,14 @@ import {
 } from "./types";
 
 export class AnthropicAdapter extends BaseProviderAdapter {
-  readonly name = "anthropic";
+  readonly name: string = "anthropic";
 
   constructor(config: ProviderConfig) {
     super(config);
   }
 
   async *sendRequest(
-    request: NormalizedRequest
+    request: NormalizedRequest,
   ): AsyncGenerator<ProviderChunk> {
     const anthropicRequest = this.toAnthropicRequest(request);
     const headers = await this.getHeaders();
@@ -42,7 +42,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
           .json()
           .catch(() => ({ error: { message: response.statusText } }));
         throw new Error(
-          `Anthropic API error: ${error.error?.message || response.statusText}`
+          `Anthropic API error: ${error.error?.message || response.statusText}`,
         );
       }
 
@@ -53,7 +53,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
         yield this.handleNonStreamingResponse(data);
       }
     } catch (error) {
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 
@@ -65,8 +65,8 @@ export class AnthropicAdapter extends BaseProviderAdapter {
         this.createValidationError(
           "apiKey",
           "API key or auth strategy is required",
-          "REQUIRED"
-        )
+          "REQUIRED",
+        ),
       );
     }
 
@@ -107,7 +107,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
     // Extract system message
     const systemMessage = request.messages.find((m) => m.role === "system");
     const nonSystemMessages = request.messages.filter(
-      (m) => m.role !== "system"
+      (m) => m.role !== "system",
     );
 
     const anthropicRequest: AnthropicRequest = {
@@ -133,7 +133,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
   }
 
   private toAnthropicMessages(
-    messages: NormalizedRequest["messages"]
+    messages: NormalizedRequest["messages"],
   ): AnthropicMessage[] {
     return messages.map((msg) => {
       // Handle tool results
@@ -195,7 +195,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
   }
 
   private async *handleStreamingResponse(
-    body: ReadableStream<Uint8Array>
+    body: ReadableStream<Uint8Array>,
   ): AsyncGenerator<ProviderChunk> {
     const reader = body.getReader();
     const decoder = new TextDecoder();

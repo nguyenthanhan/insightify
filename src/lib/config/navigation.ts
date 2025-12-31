@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import {
   DollarSign,
   BarChart3,
@@ -6,6 +6,7 @@ import {
   Settings,
   Users,
   ShoppingCart,
+  LucideIcon,
 } from "lucide-react";
 import { DashboardType } from "@/types/agent";
 
@@ -19,13 +20,34 @@ export interface NavigationItem {
 // Create navigation items with icons
 export function createNavigationItems(): NavigationItem[] {
   return [
-    { id: "sales", label: "Sales", icon: DollarSign, badge: 3 },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "financial", label: "Financial", icon: LayoutDashboard },
-    { id: "operations", label: "Operations", icon: Settings },
-    { id: "hr", label: "HR", icon: Users },
-    { id: "ecommerce", label: "E-Commerce", icon: ShoppingCart },
-  ] as NavigationItem[];
+    {
+      id: "sales",
+      label: "Sales",
+      icon: React.createElement(DollarSign),
+      badge: 3,
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: React.createElement(BarChart3),
+    },
+    {
+      id: "financial",
+      label: "Financial",
+      icon: React.createElement(LayoutDashboard),
+    },
+    {
+      id: "operations",
+      label: "Operations",
+      icon: React.createElement(Settings),
+    },
+    { id: "hr", label: "HR", icon: React.createElement(Users) },
+    {
+      id: "ecommerce",
+      label: "E-Commerce",
+      icon: React.createElement(ShoppingCart),
+    },
+  ];
 }
 
 // Navigation item labels map

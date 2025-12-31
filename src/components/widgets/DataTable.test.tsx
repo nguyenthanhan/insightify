@@ -13,6 +13,7 @@ interface TestRow {
   id: number;
   name: string;
   value: number;
+  [key: string]: unknown;
 }
 
 // Arbitrary for test rows
@@ -42,7 +43,7 @@ describe("Property: Table Row Alternation", () => {
           expect(alternation).toBe(expected);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -54,7 +55,7 @@ describe("Property: Table Row Alternation", () => {
 
         expect(current).not.toBe(next);
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
@@ -72,11 +73,13 @@ describe("Property: Table Sort Correctness", () => {
           const sorted = sortTableData(data, "value", "asc");
 
           for (let i = 1; i < sorted.length; i++) {
-            expect(sorted[i - 1].value).toBeLessThanOrEqual(sorted[i].value);
+            expect(sorted[i - 1].value as number).toBeLessThanOrEqual(
+              sorted[i].value as number,
+            );
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -88,11 +91,13 @@ describe("Property: Table Sort Correctness", () => {
           const sorted = sortTableData(data, "value", "desc");
 
           for (let i = 1; i < sorted.length; i++) {
-            expect(sorted[i - 1].value).toBeGreaterThanOrEqual(sorted[i].value);
+            expect(sorted[i - 1].value as number).toBeGreaterThanOrEqual(
+              sorted[i].value as number,
+            );
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -104,9 +109,9 @@ describe("Property: Table Sort Correctness", () => {
         (data, direction) => {
           const sorted = sortTableData(data, "value", direction);
           expect(sorted.length).toBe(data.length);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
@@ -134,9 +139,9 @@ describe("Property: Table Filter Correctness", () => {
             });
             expect(matchesFilter).toBe(true);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -146,7 +151,7 @@ describe("Property: Table Filter Correctness", () => {
         const filtered = filterTableData(data, testColumns, "");
         expect(filtered.length).toBe(data.length);
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -158,9 +163,9 @@ describe("Property: Table Filter Correctness", () => {
         (data, filterValue) => {
           const filtered = filterTableData(data, testColumns, filterValue);
           expect(filtered.length).toBeLessThanOrEqual(data.length);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
@@ -190,9 +195,9 @@ describe("Property: Table Pagination Correctness", () => {
               expect(item).toEqual(data[startIndex + i]);
             });
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -207,9 +212,9 @@ describe("Property: Table Pagination Correctness", () => {
 
           const paginated = paginateTableData(data, beyondPage, pageSize);
           expect(paginated.length).toBe(0);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -229,9 +234,9 @@ describe("Property: Table Pagination Correctness", () => {
 
           expect(allItems.length).toBe(data.length);
           expect(allItems).toEqual(data);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

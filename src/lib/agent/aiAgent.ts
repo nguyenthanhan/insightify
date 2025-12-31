@@ -6,15 +6,13 @@ import {
   ProviderConfig,
   NormalizedRequest,
   NormalizedMessage,
-  ProviderChunk,
-  DashboardType,
 } from "./types";
 import { ContextManager } from "./context/contextManager";
 import { ToolRegistry } from "./tools/toolRegistry";
 import { ResponseCache } from "./infrastructure/cache";
 import { RetryHandler } from "./infrastructure/retry";
 import { RateLimiter } from "./infrastructure/rateLimiter";
-import { MessageParser, ParsedResponse } from "./parser/messageParser";
+import { MessageParser } from "./parser/messageParser";
 import { OpenAIAdapter } from "./providers/openaiAdapter";
 import { OpenAICompatibleAdapter } from "./providers/openaiCompatibleAdapter";
 import { AnthropicAdapter } from "./providers/anthropicAdapter";
@@ -63,7 +61,7 @@ export class AIAgent {
     this.config = { ...DEFAULT_CONFIG, ...config } as AIAgentConfig;
     this.contextManager = new ContextManager(
       "sales",
-      this.config.contextOptions
+      this.config.contextOptions,
     );
     this.toolRegistry = new ToolRegistry();
     this.cache = new ResponseCache(this.config.cacheOptions);
@@ -97,7 +95,7 @@ export class AIAgent {
       // Check cache first
       const cacheKey = ResponseCache.generateKey(
         request.query,
-        request.dashboardType
+        request.dashboardType,
       );
       const cachedResponse = this.cache.get(cacheKey);
       if (cachedResponse) {
@@ -226,7 +224,7 @@ export class AIAgent {
         break;
       default:
         console.warn(
-          `Unknown provider type: ${config.type}, using mock engine`
+          `Unknown provider type: ${config.type}, using mock engine`,
         );
         this.adapter = null;
         this.degradedMode = true;
@@ -263,7 +261,7 @@ export class AIAgent {
           ? tools.map((t) => ({
               name: t.name,
               description: t.description,
-              parameters: t.parameters,
+              parameters: t.parameters as unknown as Record<string, unknown>,
             }))
           : undefined,
     };
@@ -271,11 +269,11 @@ export class AIAgent {
 
   private async *processMockQuery(
     request: AgentRequest,
-    showDegradedNotice = false
+    showDegradedNotice = false,
   ): AsyncGenerator<AgentResponse> {
     const mockResponse = await processMockQuery(
       request.query,
-      request.dashboardType
+      request.dashboardType,
     );
 
     let content = mockResponse.content;
@@ -303,7 +301,7 @@ export class AIAgent {
   private createResponse(
     content: string,
     cached: boolean,
-    partial = false
+    partial = false,
   ): AgentResponse {
     const parsed = this.parser.parse(content);
 
@@ -320,7 +318,7 @@ export class AIAgent {
 
 // Factory function
 export function createAIAgent(
-  config: Partial<AIAgentConfig> & { provider: ProviderConfig }
+  config: Partial<AIAgentConfig> & { provider: ProviderConfig },
 ): AIAgent {
   return new AIAgent(config);
 }

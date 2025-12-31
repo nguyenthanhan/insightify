@@ -6,6 +6,9 @@ import {
   MessageType,
 } from "@/types/agent";
 
+// Re-export types from @/types/agent for convenience
+export type { DashboardType, MessageType, ChartData, TableData, InsightData };
+
 // ============ AI Agent Core Types ============
 
 export interface AIAgentConfig {
@@ -143,7 +146,7 @@ export interface ToolDefinition {
 }
 
 export type ToolHandler = (
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ) => Promise<ToolResult>;
 
 export interface ToolResult {
