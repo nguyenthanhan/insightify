@@ -2,9 +2,23 @@
 @import "./glass.css";
 @import "./animations.css";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Enable class-based dark mode (instead of media query) */
+@variant dark (&:where(.dark, .dark *));
+
+/* Custom theme configuration for Tailwind v4 */
+@theme {
+  --color-border: hsl(var(--border));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-bounce-slow: bounce 1s infinite;
+}
 
 @layer base {
   :root {
@@ -32,13 +46,10 @@
   }
 }
 
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
+@utility scrollbar-hide {
+  &::-webkit-scrollbar {
     display: none;
   }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
