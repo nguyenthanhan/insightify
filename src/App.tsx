@@ -78,7 +78,7 @@ function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, []); // Only run once on mount
+  }, [userPreferences.theme]);
 
   const handleSidebarItemClick = useCallback(
     (item: SidebarItem) => {
