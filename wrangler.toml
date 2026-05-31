@@ -1,0 +1,29 @@
+# Cloudflare Pages Configuration
+# This file is optional but provides better control over deployment settings
+
+name = "insightify"
+compatibility_date = "2024-01-01"
+
+# Pages configuration
+pages_build_output_dir = "dist"
+
+# Environment variables (secrets should be set via CLI or Dashboard)
+# DO NOT put actual API keys here!
+[env.production]
+# OPENAI_API_KEY = "set via: wrangler pages secret put OPENAI_API_KEY"
+# ANTHROPIC_API_KEY = "set via: wrangler pages secret put ANTHROPIC_API_KEY"
+
+[env.preview]
+# Preview environment for testing
+# OPENAI_API_KEY = "set via: wrangler pages secret put OPENAI_API_KEY --env preview"
+# ANTHROPIC_API_KEY = "set via: wrangler pages secret put ANTHROPIC_API_KEY --env preview"
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+
+# Compatibility flags
+[compatibility_flags]
+# Enable modern JavaScript features
+nodejs_compat = true

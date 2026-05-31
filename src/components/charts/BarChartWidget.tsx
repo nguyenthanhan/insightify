@@ -8,7 +8,13 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useMemo } from "react";
 import { CHART_COLORS } from "@/lib/config/dashboards/types";
+import {
+  downsampleData,
+  shouldDownsample,
+  getOptimalPointCount,
+} from "@/lib/utils/chartOptimization";
 
 export interface BarChartWidgetProps {
   data: Record<string, unknown>[];
@@ -38,10 +44,18 @@ export function BarChartWidget({
   colors = CHART_COLORS,
   className,
 }: BarChartWidgetProps) {
+  // Optimize data for performance
+  const optimizedData = useMemo(() => {
+    const threshold = getOptimalPointCount("bar");
+    return shouldDownsample(data.length, threshold)
+      ? downsampleData(data, threshold)
+      : data;
+  }, [data]);
+
   return (
     <div style={{ width: "100%", height }} className={className}>
       <ResponsiveContainer>
-        <BarChart data={data} layout={layout}>
+        <BarChart data={optimizedData} layout={layout}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" />}
           {layout === "vertical" ? (
             <>

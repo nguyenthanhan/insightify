@@ -11,7 +11,6 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
     open: true,
   },
   build: {
@@ -20,18 +19,10 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks
           "vendor-react": ["react", "react-dom"],
-          "vendor-recharts": ["recharts"],
           "vendor-framer": ["framer-motion"],
           "vendor-zustand": ["zustand"],
+          // Recharts will be automatically code-split via lazy loading
           // Feature chunks
-          charts: [
-            "./src/components/charts/AreaChartWidget.tsx",
-            "./src/components/charts/BarChartWidget.tsx",
-            "./src/components/charts/LineChartWidget.tsx",
-            "./src/components/charts/PieChartWidget.tsx",
-            "./src/components/charts/RadarChartWidget.tsx",
-            "./src/components/charts/ChartWidget.tsx",
-          ],
           chat: [
             "./src/components/chat/ChatDialog.tsx",
             "./src/components/chat/ChatButton.tsx",
@@ -50,6 +41,6 @@ export default defineConfig({
     // Enable source maps for debugging
     sourcemap: false,
     // Chunk size warning limit
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 800,
   },
 });

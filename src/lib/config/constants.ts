@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { safeStorage } from "@/lib/utils/sanitize";
 
 /**
  * API Configuration Schema
@@ -140,17 +141,13 @@ export function resetConfig(): void {
  * Load configuration from localStorage
  */
 export function loadConfigFromStorage(key = "app_config"): boolean {
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const config = serializer.deserialize(stored);
-      if (config) {
-        currentConfig = config;
-        return true;
-      }
+  const stored = safeStorage.getItem(key);
+  if (stored) {
+    const config = serializer.deserialize(stored);
+    if (config) {
+      currentConfig = config;
+      return true;
     }
-  } catch {
-    // Storage not available
   }
   return false;
 }
@@ -159,12 +156,7 @@ export function loadConfigFromStorage(key = "app_config"): boolean {
  * Save configuration to localStorage
  */
 export function saveConfigToStorage(key = "app_config"): boolean {
-  try {
-    localStorage.setItem(key, serializer.serialize(currentConfig));
-    return true;
-  } catch {
-    return false;
-  }
+  return safeStorage.setItem(key, serializer.serialize(currentConfig));
 }
 
 /**

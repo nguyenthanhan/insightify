@@ -1,4 +1,5 @@
 import { RetryOptions, AgentError, ErrorCategory } from "../types";
+import { sanitizeError } from "@/lib/utils/sanitize";
 
 const DEFAULT_OPTIONS: RetryOptions = {
   maxAttempts: 3,
@@ -22,7 +23,7 @@ export class RetryHandler {
 
   async execute<T>(
     fn: () => Promise<T>,
-    options?: Partial<RetryOptions>
+    options?: Partial<RetryOptions>,
   ): Promise<T> {
     const opts = { ...this.options, ...options };
     let lastError: Error | undefined;
@@ -32,10 +33,11 @@ export class RetryHandler {
       try {
         return await fn();
       } catch (error) {
-        lastError = error as Error;
+        // Sanitize error before storing
+        lastError = sanitizeError(error as Error);
 
         if (!this.isRetryable(error, opts.retryableErrors)) {
-          throw error;
+          throw lastError;
         }
 
         if (attempt === opts.maxAttempts) {
@@ -127,7 +129,7 @@ export class RetryHandler {
 
   private createMaxRetriesError(
     lastError: Error,
-    attempts: number
+    attempts: number,
   ): AgentError {
     return {
       category: ErrorCategory.NETWORK,

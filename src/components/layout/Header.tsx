@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "../../lib/utils/cn";
+import { useAgentStore } from "../../store/agentStore";
 
 export interface Notification {
   id: string;
@@ -82,7 +83,7 @@ export function Header({
         scrolled ? "glass-header py-2" : "bg-transparent py-4",
         sidebarCollapsed ? "ml-20" : "ml-64",
         "md:ml-0",
-        className
+        className,
       )}
     >
       <div className="flex items-center justify-between px-6">
@@ -90,7 +91,7 @@ export function Header({
         <div
           className={cn(
             "transition-all duration-300",
-            scrolled ? "scale-95 origin-left" : ""
+            scrolled ? "scale-95 origin-left" : "",
           )}
         >
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -123,6 +124,9 @@ export function Header({
             unreadCount={unreadCount}
             onNotificationClick={onNotificationClick}
           />
+
+          {/* Dark mode toggle */}
+          <DarkModeToggle />
 
           {/* User menu */}
           {user && (
@@ -161,7 +165,7 @@ function SearchBar({
       <div
         className={cn(
           "flex items-center transition-all duration-300 ease-out",
-          expanded ? "w-64" : "w-10"
+          expanded ? "w-64" : "w-10",
         )}
       >
         <button
@@ -182,7 +186,7 @@ function SearchBar({
           className={cn(
             "bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white placeholder-gray-400",
             "transition-all duration-300",
-            expanded ? "w-full opacity-100 pl-2" : "w-0 opacity-0"
+            expanded ? "w-full opacity-100 pl-2" : "w-0 opacity-0",
           )}
         />
       </div>
@@ -267,7 +271,7 @@ function NotificationBell({
                   }}
                   className={cn(
                     "w-full p-3 text-left hover:bg-white/5 transition-colors",
-                    !notification.read && "bg-blue-500/5"
+                    !notification.read && "bg-blue-500/5",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -291,6 +295,27 @@ function NotificationBell({
         </div>
       )}
     </div>
+  );
+}
+
+// DarkModeToggle component
+function DarkModeToggle() {
+  const { userPreferences, setTheme } = useAgentStore();
+  const isDark = userPreferences.theme === "dark";
+
+  const handleToggle = () => {
+    const newTheme = userPreferences.theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {isDark ? <SunIcon /> : <MoonIcon />}
+    </button>
   );
 }
 
@@ -469,6 +494,42 @@ function LogoutIcon() {
         strokeLinejoin="round"
         strokeWidth={2}
         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+      />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      className="w-5 h-5 text-gray-500"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+      />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg
+      className="w-5 h-5 text-gray-500"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
       />
     </svg>
   );

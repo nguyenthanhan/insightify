@@ -3,9 +3,9 @@ import { Message } from "@/types/agent";
 import { MessageItem } from "./MessageItem";
 import { TypingIndicator } from "./TypingIndicator";
 import { VirtualList } from "@/components/ui/VirtualList";
+import { useAgentStore } from "@/store/agentStore";
 
 interface MessageListProps {
-  messages: Message[];
   isProcessing: boolean;
 }
 
@@ -15,9 +15,13 @@ const VIRTUAL_SCROLL_THRESHOLD = 50;
 // Fixed height for message items (VirtualList requires fixed height)
 const MESSAGE_ITEM_HEIGHT = 100;
 
-export function MessageList({ messages, isProcessing }: MessageListProps) {
+export function MessageList({ isProcessing }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Get messages from store using pagination
+  const messages = useAgentStore((state) => state.getMessages());
+  const messageCount = useAgentStore((state) => state.getMessageCount());
 
   // Use virtual scrolling only for large message lists
   const useVirtualScrolling = messages.length > VIRTUAL_SCROLL_THRESHOLD;
@@ -50,6 +54,9 @@ export function MessageList({ messages, isProcessing }: MessageListProps) {
   if (useVirtualScrolling) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 pt-2 text-xs text-gray-500 dark:text-gray-400">
+          Showing {messages.length} of {messageCount} messages
+        </div>
         <div ref={containerRef} className="flex-1">
           <VirtualList
             items={messages}

@@ -27,7 +27,7 @@ describe("Provider Adapters", () => {
       role: fc.constantFrom<NormalizedMessage["role"]>(
         "system",
         "user",
-        "assistant"
+        "assistant",
       ),
       content: fc.string({ minLength: 1, maxLength: 100 }),
     });
@@ -57,7 +57,7 @@ describe("Provider Adapters", () => {
           expect(adapter.config.model).toBe("gpt-4");
           return true;
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
 
@@ -75,7 +75,7 @@ describe("Provider Adapters", () => {
           expect(adapter.config.model).toBe("claude-3-sonnet-20240229");
           return true;
         }),
-        { numRuns: 50 }
+        { numRuns: 50 },
       );
     });
   });
@@ -246,7 +246,7 @@ describe("Provider Adapters", () => {
   });
 
   describe("Configuration Validation", () => {
-    it("OpenAI should require API key", async () => {
+    it("OpenAI should work without API key (uses proxy)", async () => {
       const config: ProviderConfig = {
         type: "openai",
         model: "gpt-4",
@@ -254,8 +254,8 @@ describe("Provider Adapters", () => {
       const adapter = new OpenAIAdapter(config);
 
       const result = await adapter.validateConfig();
-      expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.path === "apiKey")).toBe(true);
+      // Should be valid because API key is handled by proxy
+      expect(result.valid).toBe(true);
     });
 
     it("OpenAI-compatible should require base URL", async () => {

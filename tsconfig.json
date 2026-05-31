@@ -21,6 +21,6 @@
     },
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src"],
+  "include": ["src", "functions"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

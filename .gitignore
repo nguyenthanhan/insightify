@@ -84,3 +84,8 @@ temp
 *.p12
 .vercel
 .netlify
+
+# Cloudflare
+.wrangler
+.dev.vars
+wrangler.toml.backup

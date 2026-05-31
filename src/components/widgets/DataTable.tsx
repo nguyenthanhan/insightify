@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { cn } from "../../lib/utils/cn";
+import { debounce } from "../../lib/utils/debounce";
 
 export interface TableColumn<T> {
   key: keyof T;
@@ -48,20 +49,43 @@ export function DataTable<T extends Record<string, unknown>>({
 }: DataTableProps<T>) {
   const [sortConfig, setSortConfig] = useState<SortConfig<T> | null>(null);
   const [filterValue, setFilterValue] = useState("");
+  const [debouncedFilterValue, setDebouncedFilterValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  // Filter data
+  // Debounced filter update with cleanup
+  const debouncedSetFilter = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedFilterValue(value);
+        setCurrentPage(1); // Reset to first page on filter
+      }, 300),
+    [],
+  );
+
+  // Update debounced value when filter changes
+  useEffect(() => {
+    debouncedSetFilter(filterValue);
+
+    // Cleanup: cancel pending debounced calls on unmount
+    return () => {
+      debouncedSetFilter.cancel();
+    };
+  }, [filterValue, debouncedSetFilter]);
+
+  // Filter data using debounced value
   const filteredData = useMemo(() => {
-    if (!filterValue) return data;
+    if (!debouncedFilterValue) return data;
 
     return data.filter((row) =>
       columns.some((col) => {
         const value = row[col.key];
-        return String(value).toLowerCase().includes(filterValue.toLowerCase());
-      })
+        return String(value)
+          .toLowerCase()
+          .includes(debouncedFilterValue.toLowerCase());
+      }),
     );
-  }, [data, columns, filterValue]);
+  }, [data, columns, debouncedFilterValue]);
 
   // Sort data
   const sortedData = useMemo(() => {
@@ -136,7 +160,7 @@ export function DataTable<T extends Record<string, unknown>>({
         glassmorphism
           ? "glass-card"
           : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-        className
+        className,
       )}
     >
       {/* Filter */}
@@ -146,10 +170,7 @@ export function DataTable<T extends Record<string, unknown>>({
             type="text"
             placeholder="Search..."
             value={filterValue}
-            onChange={(e) => {
-              setFilterValue(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setFilterValue(e.target.value)}
             className="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           />
         </div>
@@ -180,7 +201,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     "px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider",
                     sortable &&
                       col.sortable !== false &&
-                      "cursor-pointer hover:bg-white/10 transition-colors"
+                      "cursor-pointer hover:bg-white/10 transition-colors",
                   )}
                   style={{ width: col.width }}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
@@ -206,7 +227,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     : "bg-gray-50/30 dark:bg-gray-900/30",
                   "hover:bg-blue-50/50 dark:hover:bg-blue-900/20",
                   selectedRows.has(rowIndex) &&
-                    "bg-gradient-to-r from-blue-500/10 to-purple-500/10"
+                    "bg-gradient-to-r from-blue-500/10 to-purple-500/10",
                 )}
               >
                 {selectable && (
@@ -315,12 +336,12 @@ function Pagination({
                 "w-8 h-8 text-sm rounded-lg transition-all duration-200",
                 currentPage === page
                   ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                  : "hover:bg-white/10"
+                  : "hover:bg-white/10",
               )}
             >
               {page}
             </button>
-          )
+          ),
         )}
       </div>
 
@@ -375,7 +396,7 @@ function TableSkeleton({ columns, rows }: { columns: number; rows: number }) {
 export function sortTableData<T extends Record<string, unknown>>(
   data: T[],
   key: keyof T,
-  direction: "asc" | "desc"
+  direction: "asc" | "desc",
 ): T[] {
   return [...data].sort((a, b) => {
     const aVal = a[key];
@@ -393,7 +414,7 @@ export function sortTableData<T extends Record<string, unknown>>(
 export function filterTableData<T extends Record<string, unknown>>(
   data: T[],
   columns: TableColumn<T>[],
-  filterValue: string
+  filterValue: string,
 ): T[] {
   if (!filterValue) return data;
 
@@ -401,14 +422,14 @@ export function filterTableData<T extends Record<string, unknown>>(
     columns.some((col) => {
       const value = row[col.key];
       return String(value).toLowerCase().includes(filterValue.toLowerCase());
-    })
+    }),
   );
 }
 
 export function paginateTableData<T>(
   data: T[],
   page: number,
-  pageSize: number
+  pageSize: number,
 ): T[] {
   const startIndex = (page - 1) * pageSize;
   return data.slice(startIndex, startIndex + pageSize);

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { safeStorage } from "@/lib/utils/sanitize";
 
 export interface UserPreferences {
   id: string;
@@ -92,7 +93,7 @@ export class PreferenceStore {
   }
 
   setExportDefaults(
-    defaults: Partial<UserPreferences["exportDefaults"]>
+    defaults: Partial<UserPreferences["exportDefaults"]>,
   ): void {
     this.set({
       exportDefaults: {
@@ -103,7 +104,7 @@ export class PreferenceStore {
   }
 
   setDashboardSettings(
-    settings: Partial<UserPreferences["dashboardSettings"]>
+    settings: Partial<UserPreferences["dashboardSettings"]>,
   ): void {
     this.set({
       dashboardSettings: {
@@ -146,13 +147,13 @@ export class PreferenceStore {
   private loadFromStorage(): UserPreferences | null {
     if (!this.storageAvailable) return null;
 
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+    const stored = safeStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
         return JSON.parse(stored);
+      } catch (e) {
+        console.warn("Failed to parse preferences from storage:", e);
       }
-    } catch (e) {
-      console.warn("Failed to load preferences from storage:", e);
     }
     return null;
   }
@@ -160,24 +161,24 @@ export class PreferenceStore {
   private saveToStorage(): void {
     if (!this.storageAvailable) return;
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.preferences));
-    } catch (e) {
-      console.warn("Failed to save preferences to storage:", e);
+    const success = safeStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(this.preferences),
+    );
+    if (!success) {
+      console.warn("Failed to save preferences: storage quota exceeded");
     }
   }
 
   private checkStorageAvailable(): boolean {
     if (typeof window === "undefined") return false;
 
-    try {
-      const test = "__storage_test__";
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
-      return true;
-    } catch (e) {
-      return false;
+    const test = "__storage_test__";
+    const success = safeStorage.setItem(test, test);
+    if (success) {
+      safeStorage.removeItem(test);
     }
+    return success;
   }
 
   private notifyListeners(): void {
@@ -193,7 +194,7 @@ export class PreferenceStore {
       new StorageEvent("storage", {
         key: STORAGE_KEY,
         newValue: JSON.stringify(this.preferences),
-      })
+      }),
     );
   }
 

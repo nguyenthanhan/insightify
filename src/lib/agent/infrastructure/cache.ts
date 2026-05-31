@@ -1,4 +1,5 @@
 import { AgentResponse, CacheOptions, CachedResponse } from "../types";
+import { safeStorage } from "@/lib/utils/sanitize";
 
 const DEFAULT_OPTIONS: CacheOptions = {
   enabled: true,
@@ -10,6 +11,7 @@ const DEFAULT_OPTIONS: CacheOptions = {
 export class ResponseCache {
   private options: CacheOptions;
   private memoryCache: Map<string, CachedResponse> = new Map();
+  private accessOrder: string[] = []; // LRU tracking
   private storageKey = "ai-agent-cache";
 
   constructor(options: Partial<CacheOptions> = {}) {
@@ -29,15 +31,18 @@ export class ResponseCache {
       return null;
     }
 
+    // Update LRU order
+    this.updateAccessOrder(key);
+
     return cached.response;
   }
 
   set(key: string, response: AgentResponse, ttl?: number): void {
     if (!this.options.enabled) return;
 
-    // Enforce max size
+    // Enforce max size with LRU eviction
     if (this.memoryCache.size >= this.options.maxSize) {
-      this.evictOldest();
+      this.evictLRU();
     }
 
     const cached: CachedResponse = {
@@ -47,16 +52,19 @@ export class ResponseCache {
     };
 
     this.memoryCache.set(key, cached);
+    this.updateAccessOrder(key);
     this.saveToStorage();
   }
 
   invalidate(key: string): void {
     this.memoryCache.delete(key);
+    this.removeFromAccessOrder(key);
     this.saveToStorage();
   }
 
   clear(): void {
     this.memoryCache.clear();
+    this.accessOrder = [];
     this.saveToStorage();
   }
 
@@ -98,6 +106,26 @@ export class ResponseCache {
     return now - cached.timestamp > cached.ttl;
   }
 
+  /**
+   * LRU eviction - removes least recently used item
+   */
+  private evictLRU(): void {
+    if (this.accessOrder.length === 0) {
+      // Fallback to oldest timestamp if access order is empty
+      this.evictOldest();
+      return;
+    }
+
+    const lruKey = this.accessOrder[0];
+    if (lruKey) {
+      this.memoryCache.delete(lruKey);
+      this.accessOrder.shift();
+    }
+  }
+
+  /**
+   * Fallback eviction by timestamp
+   */
   private evictOldest(): void {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;
@@ -111,6 +139,27 @@ export class ResponseCache {
 
     if (oldestKey) {
       this.memoryCache.delete(oldestKey);
+      this.removeFromAccessOrder(oldestKey);
+    }
+  }
+
+  /**
+   * Update access order for LRU tracking
+   */
+  private updateAccessOrder(key: string): void {
+    // Remove from current position
+    this.removeFromAccessOrder(key);
+    // Add to end (most recently used)
+    this.accessOrder.push(key);
+  }
+
+  /**
+   * Remove key from access order
+   */
+  private removeFromAccessOrder(key: string): void {
+    const index = this.accessOrder.indexOf(key);
+    if (index > -1) {
+      this.accessOrder.splice(index, 1);
     }
   }
 
@@ -120,10 +169,12 @@ export class ResponseCache {
 
     try {
       if (this.options.storage === "localStorage") {
-        const data = localStorage.getItem(this.storageKey);
+        const data = safeStorage.getItem(this.storageKey);
         if (data) {
           const parsed = JSON.parse(data) as Record<string, CachedResponse>;
           this.memoryCache = new Map(Object.entries(parsed));
+          // Rebuild access order based on timestamps
+          this.rebuildAccessOrder();
           // Clean expired entries
           this.cleanExpired();
         }
@@ -138,13 +189,11 @@ export class ResponseCache {
     if (this.options.storage === "memory") return;
     if (typeof window === "undefined") return;
 
-    try {
-      if (this.options.storage === "localStorage") {
-        const data = Object.fromEntries(this.memoryCache.entries());
-        localStorage.setItem(this.storageKey, JSON.stringify(data));
-      }
-    } catch (error) {
-      console.warn("Failed to save cache to storage:", error);
+    const data = Object.fromEntries(this.memoryCache.entries());
+    const success = safeStorage.setItem(this.storageKey, JSON.stringify(data));
+
+    if (!success) {
+      console.warn("Failed to save cache: storage quota exceeded");
     }
   }
 
@@ -153,8 +202,18 @@ export class ResponseCache {
     for (const [key, cached] of this.memoryCache.entries()) {
       if (now - cached.timestamp > cached.ttl) {
         this.memoryCache.delete(key);
+        this.removeFromAccessOrder(key);
       }
     }
+  }
+
+  /**
+   * Rebuild access order from cache timestamps (oldest to newest)
+   */
+  private rebuildAccessOrder(): void {
+    const entries = Array.from(this.memoryCache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    this.accessOrder = entries.map(([key]) => key);
   }
 }
 

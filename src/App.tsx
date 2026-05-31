@@ -1,7 +1,5 @@
 import { useEffect, useCallback, memo, useState, lazy, Suspense } from "react";
 import {
-  Moon,
-  Sun,
   LayoutDashboard,
   BarChart3,
   DollarSign,
@@ -68,23 +66,19 @@ const sampleNotifications: Notification[] = [
 ];
 
 function App() {
-  const { userPreferences, setTheme, setDashboard } = useAgentStore();
+  const { userPreferences, setDashboard } = useAgentStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState(sampleNotifications);
 
   useEffect(() => {
-    // Apply theme on mount
-    if (userPreferences.theme === "dark") {
+    // Apply theme on mount (in case it was persisted)
+    const theme = userPreferences.theme;
+    if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, [userPreferences.theme]);
-
-  const toggleTheme = useCallback(() => {
-    const newTheme = userPreferences.theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-  }, [userPreferences.theme, setTheme]);
+  }, []); // Only run once on mount
 
   const handleSidebarItemClick = useCallback(
     (item: SidebarItem) => {
@@ -154,19 +148,6 @@ function App() {
             onNotificationClick={handleNotificationClick}
             sidebarCollapsed={sidebarCollapsed}
           />
-
-          {/* Theme Toggle (floating) */}
-          <button
-            onClick={toggleTheme}
-            className="fixed bottom-24 right-6 z-30 p-3 rounded-full glass-card shadow-lg hover:scale-105 transition-transform"
-            aria-label="Toggle theme"
-          >
-            {userPreferences.theme === "light" ? (
-              <Moon size={20} className="text-gray-700 dark:text-gray-300" />
-            ) : (
-              <Sun size={20} className="text-gray-700 dark:text-gray-300" />
-            )}
-          </button>
 
           {/* Main Content */}
           <main className="p-6">

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import {
   Message,
@@ -12,6 +12,12 @@ import { AIAgent, createAIAgent } from "@/lib/agent/aiAgent";
 import { ProviderConfig, AgentResponse } from "@/lib/agent/types";
 import { getWelcomeMessage } from "@/lib/agent/templates";
 import { registerDashboardTools } from "@/lib/agent/tools/dashboardTools";
+import { secureStorage } from "@/lib/utils/encryption";
+import {
+  createMessagePaginator,
+  MessagePaginator,
+} from "@/lib/utils/messagePagination";
+import { requestDeduplicator } from "@/lib/utils/requestDeduplication";
 
 // Default provider config (mock mode)
 const DEFAULT_PROVIDER_CONFIG: ProviderConfig = {
@@ -20,7 +26,7 @@ const DEFAULT_PROVIDER_CONFIG: ProviderConfig = {
   apiKey: "", // Empty key triggers degraded mode
 };
 
-interface AgentState {
+export interface AgentState {
   // UI State
   isDialogOpen: boolean;
   isProcessing: boolean;
@@ -29,8 +35,7 @@ interface AgentState {
   errorMessage: string | null;
   isDegradedMode: boolean;
 
-  // Conversation
-  messages: Message[];
+  // Conversation - now using paginator
   currentInput: string;
   activeRequestId: string | null;
 
@@ -53,10 +58,17 @@ interface AgentState {
   addWelcomeMessage: () => void;
   setProviderConfig: (config: ProviderConfig) => Promise<void>;
   getAgent: () => AIAgent;
+
+  // Pagination methods
+  getMessages: () => Message[];
+  getRecentMessages: (count?: number) => Message[];
+  getMessageCount: () => number;
+  searchMessages: (query: string) => Message[];
 }
 
-// Singleton agent instance
+// Singleton instances
 let agentInstance: AIAgent | null = null;
+let messagePaginator: MessagePaginator | null = null;
 
 function getOrCreateAgent(config: ProviderConfig): AIAgent {
   if (!agentInstance) {
@@ -66,6 +78,39 @@ function getOrCreateAgent(config: ProviderConfig): AIAgent {
   }
   return agentInstance;
 }
+
+function getOrCreatePaginator(): MessagePaginator {
+  if (!messagePaginator) {
+    messagePaginator = createMessagePaginator({
+      pageSize: 50,
+      maxStoredMessages: 200,
+      archiveThreshold: 150,
+    });
+  }
+  return messagePaginator;
+}
+
+// Custom storage with encryption
+const encryptedStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    try {
+      return await secureStorage.getItem(name);
+    } catch (error) {
+      console.error("Failed to get encrypted item:", error);
+      return null;
+    }
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    try {
+      await secureStorage.setItem(name, value);
+    } catch (error) {
+      console.error("Failed to set encrypted item:", error);
+    }
+  },
+  removeItem: (name: string): void => {
+    secureStorage.removeItem(name);
+  },
+};
 
 export const useAgentStore = create<AgentState>()(
   persist(
@@ -77,7 +122,6 @@ export const useAgentStore = create<AgentState>()(
       hasError: false,
       errorMessage: null,
       isDegradedMode: true, // Start in degraded mode until provider is configured
-      messages: [],
       currentInput: "",
       activeRequestId: null,
       currentDashboard: "sales",
@@ -96,7 +140,8 @@ export const useAgentStore = create<AgentState>()(
         set({ isDialogOpen: !state.isDialogOpen });
 
         // Add welcome message on first open
-        if (!state.isDialogOpen && state.messages.length === 0) {
+        const paginator = getOrCreatePaginator();
+        if (!state.isDialogOpen && paginator.getTotalCount() === 0) {
           get().addWelcomeMessage();
         }
       },
@@ -108,74 +153,78 @@ export const useAgentStore = create<AgentState>()(
       sendMessage: async (content: string) => {
         const state = get();
         const agent = getOrCreateAgent(state.providerConfig);
+        const paginator = getOrCreatePaginator();
         const requestId = uuidv4();
 
+        // Use request deduplication
+        const dedupKey = `${state.currentDashboard}:${content}`;
+
         try {
-          // Add user message
-          const userMessage: Message = {
-            id: uuidv4(),
-            role: "user",
-            content,
-            type: "text",
-            timestamp: new Date().toISOString(),
-          };
+          await requestDeduplicator.execute(dedupKey, async (signal) => {
+            // Add user message
+            const userMessage: Message = {
+              id: uuidv4(),
+              role: "user",
+              content,
+              type: "text",
+              timestamp: new Date().toISOString(),
+            };
 
-          set({
-            messages: [...state.messages, userMessage],
-            currentInput: "",
-            isProcessing: true,
-            isStreaming: true,
-            hasError: false,
-            errorMessage: null,
-            activeRequestId: requestId,
-          });
-
-          // Create placeholder for assistant message
-          const assistantMessageId = uuidv4();
-          const assistantMessage: Message = {
-            id: assistantMessageId,
-            role: "assistant",
-            content: "",
-            type: "text",
-            timestamp: new Date().toISOString(),
-          };
-
-          set({
-            messages: [...get().messages, assistantMessage],
-          });
-
-          // Process query using AIAgent
-          const generator = agent.processQuery({
-            query: content,
-            context: agent.getContext(),
-            dashboardType: state.currentDashboard,
-            requestId,
-          });
-
-          for await (const response of generator) {
-            // Update the assistant message with streaming content
-            const currentMessages = get().messages;
-            const updatedMessages = currentMessages.map((msg) =>
-              msg.id === assistantMessageId
-                ? {
-                    ...msg,
-                    content: response.content,
-                    type: response.type as MessageType,
-                    data: response.data,
-                  }
-                : msg
-            );
+            paginator.addMessage(userMessage);
 
             set({
-              messages: updatedMessages,
-              isDegradedMode: agent.isDegradedMode(),
+              currentInput: "",
+              isProcessing: true,
+              isStreaming: true,
+              hasError: false,
+              errorMessage: null,
+              activeRequestId: requestId,
             });
-          }
 
-          set({
-            isProcessing: false,
-            isStreaming: false,
-            activeRequestId: null,
+            // Create placeholder for assistant message
+            const assistantMessageId = uuidv4();
+            const assistantMessage: Message = {
+              id: assistantMessageId,
+              role: "assistant",
+              content: "",
+              type: "text",
+              timestamp: new Date().toISOString(),
+            };
+
+            paginator.addMessage(assistantMessage);
+
+            // Process query using AIAgent
+            const generator = agent.processQuery({
+              query: content,
+              context: agent.getContext(),
+              dashboardType: state.currentDashboard,
+              requestId,
+            });
+
+            for await (const response of generator) {
+              // Check if aborted
+              if (signal.aborted) {
+                throw new Error("Request cancelled");
+              }
+
+              // Update the assistant message with streaming content
+              paginator.updateMessage(assistantMessageId, (message) => ({
+                ...message,
+                content: response.content,
+                type: response.type as MessageType,
+                data: response.data,
+              }));
+
+              set({
+                isDegradedMode: agent.isDegradedMode(),
+              });
+            }
+
+            set({
+              isProcessing: false,
+              isStreaming: false,
+              activeRequestId: null,
+            });
           });
         } catch (error) {
           console.error("Error processing message:", error);
@@ -208,14 +257,16 @@ export const useAgentStore = create<AgentState>()(
       clearConversation: () => {
         const state = get();
         const agent = getOrCreateAgent(state.providerConfig);
+        const paginator = getOrCreatePaginator();
+
         agent.clearContext();
+        paginator.clear();
 
         set({
-          messages: [],
           hasError: false,
           errorMessage: null,
         });
-        get().addWelcomeMessage();
+        // Don't add welcome message automatically
       },
 
       setDashboard: (dashboard: DashboardType) => {
@@ -246,6 +297,7 @@ export const useAgentStore = create<AgentState>()(
 
       addWelcomeMessage: () => {
         const state = get();
+        const paginator = getOrCreatePaginator();
         const welcomeMessage: Message = {
           id: uuidv4(),
           role: "assistant",
@@ -254,7 +306,7 @@ export const useAgentStore = create<AgentState>()(
           timestamp: new Date().toISOString(),
         };
 
-        set({ messages: [welcomeMessage] });
+        paginator.addMessage(welcomeMessage);
       },
 
       setProviderConfig: async (config: ProviderConfig) => {
@@ -270,18 +322,66 @@ export const useAgentStore = create<AgentState>()(
       getAgent: () => {
         return getOrCreateAgent(get().providerConfig);
       },
+
+      // Pagination methods
+      getMessages: () => {
+        const paginator = getOrCreatePaginator();
+        return paginator.getRecent(50); // Get recent 50 messages
+      },
+
+      getRecentMessages: (count = 50) => {
+        const paginator = getOrCreatePaginator();
+        return paginator.getRecent(count);
+      },
+
+      getMessageCount: () => {
+        const paginator = getOrCreatePaginator();
+        return paginator.getTotalCount();
+      },
+
+      searchMessages: (query: string) => {
+        const paginator = getOrCreatePaginator();
+        return paginator.search(query);
+      },
     }),
     {
-      name: "dashboard-ai-agent-v2",
-      partialize: (state) => ({
-        messages: state.messages,
-        currentDashboard: state.currentDashboard,
-        userPreferences: state.userPreferences,
-        providerConfig: state.providerConfig,
-      }),
+      name: "dashboard-ai-agent-v3",
+      storage: createJSONStorage(() => ({
+        getItem: async (name: string) => {
+          const value = await encryptedStorage.getItem(name);
+          return value;
+        },
+        setItem: async (name: string, value: string) => {
+          await encryptedStorage.setItem(name, value);
+        },
+        removeItem: (name: string) => {
+          encryptedStorage.removeItem(name);
+        },
+      })),
+      partialize: (state) => {
+        const paginator = getOrCreatePaginator();
+        return {
+          messages: paginator.export(), // Export paginated messages
+          currentDashboard: state.currentDashboard,
+          userPreferences: state.userPreferences,
+          providerConfig: {
+            ...state.providerConfig,
+            apiKey: "", // Never persist API keys
+          },
+        };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Restore messages to paginator
+          const paginator = getOrCreatePaginator();
+          const persistedMessages = (state as any).messages;
+          if (persistedMessages) {
+            paginator.import(persistedMessages);
+          }
+        }
+      },
       merge: (persistedState: unknown, currentState) => {
         const persisted = persistedState as Partial<AgentState>;
-        // Ensure dashboardType exists in userPreferences
         const mergedState = {
           ...currentState,
           ...persisted,
@@ -297,8 +397,8 @@ export const useAgentStore = create<AgentState>()(
 
         return mergedState;
       },
-    }
-  )
+    },
+  ),
 );
 
 // Export helper to get agent instance directly

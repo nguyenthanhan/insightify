@@ -28,7 +28,8 @@ export class AnthropicAdapter extends BaseProviderAdapter {
   ): AsyncGenerator<ProviderChunk> {
     const anthropicRequest = this.toAnthropicRequest(request);
     const headers = await this.getHeaders();
-    const url = `${this.getBaseUrl()}/messages`;
+    // Use Cloudflare Workers proxy endpoint
+    const url = `${this.getBaseUrl()}/anthropic`;
 
     try {
       const response = await fetch(url, {
@@ -60,15 +61,8 @@ export class AnthropicAdapter extends BaseProviderAdapter {
   async validateConfig(): Promise<ValidationResult> {
     const errors = this.validateBaseConfig();
 
-    if (!this._config.apiKey && !this._config.authStrategy) {
-      errors.push(
-        this.createValidationError(
-          "apiKey",
-          "API key or auth strategy is required",
-          "REQUIRED",
-        ),
-      );
-    }
+    // API key validation removed - handled by Cloudflare Workers proxy
+    // No need to check for apiKey in frontend config
 
     if (errors.length > 0) {
       return this.createFailedValidation(errors);
@@ -93,13 +87,15 @@ export class AnthropicAdapter extends BaseProviderAdapter {
   }
 
   protected getDefaultBaseUrl(): string {
-    return "https://api.anthropic.com/v1";
+    // Use Cloudflare Workers proxy instead of calling Anthropic directly
+    // This keeps API keys secure on the server side
+    return "/api/ai";
   }
 
   protected getDefaultAuthHeaders(): Record<string, string> {
+    // No API key needed in headers - handled by Cloudflare Workers proxy
     return {
-      "x-api-key": this._config.apiKey || "",
-      "anthropic-version": this._config.apiVersion || "2024-01-01",
+      "Content-Type": "application/json",
     };
   }
 

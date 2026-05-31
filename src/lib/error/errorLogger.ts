@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { safeStorage } from "@/lib/utils/sanitize";
 
 /**
  * Schema for error details within a log entry
@@ -68,7 +69,7 @@ export class ErrorLogger {
   log(
     error: Error,
     errorInfo?: { componentStack?: string },
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ): ErrorLogEntry {
     const entry: ErrorLogEntry = {
       id: uuidv4(),
@@ -113,7 +114,7 @@ export class ErrorLogger {
    */
   getEntriesByTimeRange(startTime: number, endTime: number): ErrorLogEntry[] {
     return this.entries.filter(
-      (entry) => entry.timestamp >= startTime && entry.timestamp <= endTime
+      (entry) => entry.timestamp >= startTime && entry.timestamp <= endTime,
     );
   }
 
@@ -185,21 +186,19 @@ export class ErrorLogger {
   }
 
   private loadFromStorage(): void {
-    try {
-      const stored = localStorage.getItem(this.config.storageKey);
-      if (stored) {
-        this.entries = this.deserialize(stored);
-      }
-    } catch {
-      // Storage not available
+    const stored = safeStorage.getItem(this.config.storageKey);
+    if (stored) {
+      this.entries = this.deserialize(stored);
     }
   }
 
   private saveToStorage(): void {
-    try {
-      localStorage.setItem(this.config.storageKey, this.serialize());
-    } catch {
-      // Storage not available or quota exceeded
+    const success = safeStorage.setItem(
+      this.config.storageKey,
+      this.serialize(),
+    );
+    if (!success && process.env.NODE_ENV === "development") {
+      console.warn("Failed to save error logs: storage quota exceeded");
     }
   }
 }

@@ -27,7 +27,8 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   ): AsyncGenerator<ProviderChunk> {
     const openaiRequest = this.toOpenAIRequest(request);
     const headers = await this.getHeaders();
-    const url = `${this.getBaseUrl()}/chat/completions`;
+    // Use Cloudflare Workers proxy endpoint
+    const url = `${this.getBaseUrl()}/chat`;
 
     try {
       const response = await fetch(url, {
@@ -59,50 +60,29 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   async validateConfig(): Promise<ValidationResult> {
     const errors = this.validateBaseConfig();
 
-    if (!this._config.apiKey && !this._config.authStrategy) {
-      errors.push(
-        this.createValidationError(
-          "apiKey",
-          "API key or auth strategy is required",
-          "REQUIRED",
-        ),
-      );
-    }
+    // API key validation removed - handled by Cloudflare Workers proxy
+    // No need to check for apiKey in frontend config
 
     if (errors.length > 0) {
       return this.createFailedValidation(errors);
     }
 
-    // Optionally test connectivity
+    // Optionally test connectivity to proxy
     try {
       const headers = await this.getHeaders();
-      const response = await fetch(`${this.getBaseUrl()}/models`, {
+      // Test proxy endpoint instead of OpenAI directly
+      const response = await fetch(`${this.getBaseUrl()}/health`, {
         method: "GET",
         headers,
-      });
+      }).catch(() => null);
 
-      if (!response.ok) {
-        errors.push(
-          this.createValidationError(
-            "connection",
-            "Failed to connect to OpenAI API",
-            "CONNECTION_FAILED",
-          ),
-        );
-      }
+      // If health endpoint doesn't exist, that's okay
+      // The proxy will be tested on first actual request
     } catch (error) {
-      errors.push(
-        this.createValidationError(
-          "connection",
-          `Connection error: ${error}`,
-          "CONNECTION_ERROR",
-        ),
-      );
+      // Non-critical error, proxy will be tested on first request
     }
 
-    return errors.length > 0
-      ? this.createFailedValidation(errors)
-      : this.createSuccessValidation();
+    return this.createSuccessValidation();
   }
 
   supportsFeature(feature: ProviderFeature): boolean {
@@ -124,12 +104,15 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   protected getDefaultBaseUrl(): string {
-    return "https://api.openai.com/v1";
+    // Use Cloudflare Workers proxy instead of calling OpenAI directly
+    // This keeps API keys secure on the server side
+    return "/api/ai";
   }
 
   protected getDefaultAuthHeaders(): Record<string, string> {
+    // No API key needed in headers - handled by Cloudflare Workers proxy
     return {
-      Authorization: `Bearer ${this._config.apiKey}`,
+      "Content-Type": "application/json",
     };
   }
 

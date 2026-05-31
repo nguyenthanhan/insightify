@@ -2,21 +2,30 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X, Trash2, StopCircle, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgentStore } from "@/store/agentStore";
+import {
+  selectIsDialogOpen,
+  selectMessages,
+  selectIsProcessing,
+  selectIsStreaming,
+  selectIsDegradedMode,
+  selectToggleChatDialog,
+  selectClearConversation,
+  selectCancelRequest,
+} from "@/store/selectors";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils/cn";
 
 export function ChatDialog() {
-  const {
-    isDialogOpen,
-    messages,
-    isProcessing,
-    isStreaming,
-    isDegradedMode,
-    toggleChatDialog,
-    clearConversation,
-    cancelRequest,
-  } = useAgentStore();
+  // Use optimized selectors to prevent unnecessary re-renders
+  const isDialogOpen = useAgentStore(selectIsDialogOpen);
+  const messageCount = useAgentStore((state) => state.getMessageCount());
+  const isProcessing = useAgentStore(selectIsProcessing);
+  const isStreaming = useAgentStore(selectIsStreaming);
+  const isDegradedMode = useAgentStore(selectIsDegradedMode);
+  const toggleChatDialog = useAgentStore(selectToggleChatDialog);
+  const clearConversation = useAgentStore(selectClearConversation);
+  const cancelRequest = useAgentStore(selectCancelRequest);
 
   return (
     <Dialog.Root open={isDialogOpen} onOpenChange={toggleChatDialog}>
@@ -73,7 +82,7 @@ export function ChatDialog() {
                         <StopCircle size={18} />
                       </button>
                     )}
-                    {messages.length > 1 && !isStreaming && (
+                    {messageCount > 1 && !isStreaming && (
                       <button
                         onClick={clearConversation}
                         className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
@@ -95,7 +104,7 @@ export function ChatDialog() {
                 </div>
 
                 {/* Messages */}
-                <MessageList messages={messages} isProcessing={isProcessing} />
+                <MessageList isProcessing={isProcessing} />
 
                 {/* Input */}
                 <ChatInput disabled={isProcessing} />

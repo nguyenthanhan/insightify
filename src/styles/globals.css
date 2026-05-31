@@ -1,8 +1,8 @@
+@import "tailwindcss";
+
 /* Premium UI styles */
 @import "./glass.css";
 @import "./animations.css";
-
-@import "tailwindcss";
 
 /* Enable class-based dark mode (instead of media query) */
 @variant dark (&:where(.dark, .dark *));

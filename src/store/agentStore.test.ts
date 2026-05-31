@@ -16,7 +16,6 @@ describe("AgentStore Integration", () => {
       hasError: false,
       errorMessage: null,
       isDegradedMode: true,
-      messages: [],
       currentInput: "",
       activeRequestId: null,
       currentDashboard: "sales",
@@ -33,6 +32,10 @@ describe("AgentStore Integration", () => {
         apiKey: "",
       },
     });
+
+    // Clear paginator
+    const store = useAgentStore.getState();
+    store.clearConversation();
   });
 
   describe("Dialog State", () => {
@@ -49,11 +52,13 @@ describe("AgentStore Integration", () => {
 
     it("should add welcome message on first dialog open", () => {
       const store = useAgentStore.getState();
-      expect(store.messages.length).toBe(0);
+      // After clearConversation, paginator is empty
+      expect(store.getMessageCount()).toBe(0);
 
       store.toggleChatDialog();
-      expect(useAgentStore.getState().messages.length).toBe(1);
-      expect(useAgentStore.getState().messages[0].role).toBe("assistant");
+      // Should add welcome message when opening with empty conversation
+      expect(useAgentStore.getState().getMessageCount()).toBe(1);
+      expect(useAgentStore.getState().getMessages()[0].role).toBe("assistant");
     });
   });
 
@@ -75,8 +80,10 @@ describe("AgentStore Integration", () => {
       // Check user message was added
       await vi.waitFor(() => {
         const state = useAgentStore.getState();
-        return state.messages.some(
-          (m) => m.role === "user" && m.content === "Hello AI"
+        const messages = state.getMessages();
+        return messages.some(
+          (m: { role: string; content: string }) =>
+            m.role === "user" && m.content === "Hello AI",
         );
       });
 
@@ -114,27 +121,28 @@ describe("AgentStore Integration", () => {
       await store.sendMessage("What are my sales metrics?");
 
       const state = useAgentStore.getState();
-      const assistantMessages = state.messages.filter(
-        (m) => m.role === "assistant"
+      const messages = state.getMessages();
+      const assistantMessages = messages.filter(
+        (m: { role: string }) => m.role === "assistant",
       );
       expect(assistantMessages.length).toBeGreaterThan(0);
     });
   });
 
   describe("Conversation Management", () => {
-    it("should clear conversation and add welcome message", async () => {
+    it("should clear conversation", async () => {
       const store = useAgentStore.getState();
 
       // Add some messages
       await store.sendMessage("test message");
-      expect(useAgentStore.getState().messages.length).toBeGreaterThan(0);
+      expect(useAgentStore.getState().getMessageCount()).toBeGreaterThan(0);
 
       // Clear conversation
       store.clearConversation();
 
       const state = useAgentStore.getState();
-      expect(state.messages.length).toBe(1);
-      expect(state.messages[0].role).toBe("assistant");
+      // After clear, paginator is empty
+      expect(state.getMessageCount()).toBe(0);
     });
   });
 
