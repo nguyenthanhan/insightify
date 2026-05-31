@@ -7,6 +7,9 @@ compatibility_date = "2024-01-01"
 # Pages configuration
 pages_build_output_dir = "dist"
 
+# Compatibility flags for Pages Functions
+compatibility_flags = ["nodejs_compat"]
+
 # Environment variables (secrets should be set via CLI or Dashboard)
 # DO NOT put actual API keys here!
 [env.production]
@@ -17,13 +20,3 @@ pages_build_output_dir = "dist"
 # Preview environment for testing
 # OPENAI_API_KEY = "set via: wrangler pages secret put OPENAI_API_KEY --env preview"
 # ANTHROPIC_API_KEY = "set via: wrangler pages secret put ANTHROPIC_API_KEY --env preview"
-
-# Build configuration
-[build]
-command = "npm run build"
-cwd = "."
-
-# Compatibility flags
-[compatibility_flags]
-# Enable modern JavaScript features
-nodejs_compat = true
