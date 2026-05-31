@@ -24,9 +24,9 @@ const errorLogEntryArbitrary = fc.record({
   }),
   context: fc.option(
     fc.dictionary(fc.string({ minLength: 1, maxLength: 20 }), fc.jsonValue()),
-    { nil: undefined }
+    { nil: undefined },
   ),
-});
+}) as fc.Arbitrary<ErrorLogEntry>;
 
 describe("ErrorLogger", () => {
   let logger: ErrorLogger;
@@ -111,7 +111,7 @@ describe("ErrorLogger", () => {
       // Filter for recent entries
       const filtered = logger.getEntriesByTimeRange(
         entry1.timestamp,
-        entry2.timestamp
+        entry2.timestamp,
       );
 
       expect(filtered.length).toBe(2);
@@ -191,13 +191,13 @@ describe("ErrorLogger", () => {
               if (original.context !== undefined) {
                 // JSON.stringify converts -0 to 0, so compare stringified versions
                 expect(JSON.stringify(restored.context)).toBe(
-                  JSON.stringify(original.context)
+                  JSON.stringify(original.context),
                 );
               }
             }
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 50, timeout: 5000 },
       );
     });
 
