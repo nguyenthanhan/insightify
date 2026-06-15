@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Insightify - AI-Powered Analytics Dashboard",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

@@ -14,27 +14,29 @@ export default defineConfig({
     open: true,
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "vendor-react";
+        codeSplitting: {
+          manualChunks: (id) => {
+            if (id.includes("node_modules")) {
+              if (/(^|\/)react($|\/)/.test(id) || /(^|\/)react-dom($|\/)/.test(id)) {
+                return "vendor-react";
+              }
+              if (/(^|\/)framer-motion($|\/)/.test(id)) {
+                return "vendor-framer";
+              }
+              if (/(^|\/)zustand($|\/)/.test(id)) {
+                return "vendor-zustand";
+              }
+              return "vendor";
             }
-            if (id.includes("framer-motion")) {
-              return "vendor-framer";
+            if (id.includes("/src/components/chat/")) {
+              return "chat";
             }
-            if (id.includes("zustand")) {
-              return "vendor-zustand";
+            if (id.includes("/src/components/dashboard/")) {
+              return "dashboard";
             }
-            return "vendor";
-          }
-          if (id.includes("/src/components/chat/")) {
-            return "chat";
-          }
-          if (id.includes("/src/components/dashboard/")) {
-            return "dashboard";
-          }
+          },
         },
       },
     },
