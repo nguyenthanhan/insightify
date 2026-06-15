@@ -16,25 +16,25 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunks
-          "vendor-react": ["react", "react-dom"],
-          "vendor-framer": ["framer-motion"],
-          "vendor-zustand": ["zustand"],
-          // Recharts will be automatically code-split via lazy loading
-          // Feature chunks
-          chat: [
-            "./src/components/chat/ChatDialog.tsx",
-            "./src/components/chat/ChatButton.tsx",
-            "./src/components/chat/ChatInput.tsx",
-            "./src/components/chat/MessageList.tsx",
-            "./src/components/chat/MessageItem.tsx",
-          ],
-          dashboard: [
-            "./src/components/dashboard/DashboardTemplate.tsx",
-            "./src/components/dashboard/MetricsGrid.tsx",
-            "./src/components/dashboard/ActivityFeed.tsx",
-          ],
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor-react";
+            }
+            if (id.includes("framer-motion")) {
+              return "vendor-framer";
+            }
+            if (id.includes("zustand")) {
+              return "vendor-zustand";
+            }
+            return "vendor";
+          }
+          if (id.includes("/src/components/chat/")) {
+            return "chat";
+          }
+          if (id.includes("/src/components/dashboard/")) {
+            return "dashboard";
+          }
         },
       },
     },
